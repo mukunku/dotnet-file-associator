@@ -22,11 +22,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore dotnet-file-associator.sln
 
-      - name: Build
-        run: dotnet build dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-restore
-
-      - name: Test
+      - name: Build & Test
         run: dotnet test dotnet-file-associator.tests/dotnet-file-associator.tests.csproj --configuration Debug
+
+      - name: Build Release
+        run: dotnet build dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-restore
 
       - name: Pack NuGet package
         run: dotnet pack dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-build --output ./nupkg
@@ -35,7 +35,7 @@ jobs:
         run: dotnet nuget add source --username mukunku --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name "github" "https://nuget.pkg.github.com/mukunku/index.json"
 
       - name: Publish to GitHub Packages #--api-key ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget push --source "github" --skip-duplicate
+        run: dotnet nuget push "*.nupkg" --source "github" --skip-duplicate
         working-directory: ./nupkg
         #env:
           #NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
