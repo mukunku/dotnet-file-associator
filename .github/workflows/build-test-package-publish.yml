@@ -1,6 +1,7 @@
 name: Build, Test, Pack, and Publish
 
 on:
+  workflow_dispatch: #Trigger on-demand
   push:
     tags:
       - 'v*.*.*' # Trigger on version tags like v1.0.0
@@ -25,7 +26,7 @@ jobs:
         run: dotnet build dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test dotnet-file-associator/dotnet-file-associator.csproj --configuration Debug --no-build --verbosity normal
+        run: dotnet test dotnet-file-associator.tests/dotnet-file-associator.tests.csproj --configuration Debug --verbosity normal
 
       - name: Pack NuGet package
         run: dotnet pack dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-build --output ./nupkg

@@ -21,7 +21,7 @@
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Title>.Net-File-Associator</Title>
+    <Title>Dotnet-File-Associator</Title>
     <Version>0.1.0</Version>
     <ApplicationIcon>logo.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
