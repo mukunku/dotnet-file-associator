@@ -20,7 +20,7 @@ namespace dotnet_file_associator.tests
 
         [TestMethod]
         public void FileAssociationTest()
-        {            
+        {
             Assert.IsFalse(_testFileAssociator!.IsFileAssociationSet(_testFileExtension), "File association shouldn't be set already");
             _testFileAssociator.SetFileAssociation(_testFileExtension);
             Assert.IsTrue(_testFileAssociator.IsFileAssociationSet(_testFileExtension), "File association wasn't set correctly");
@@ -71,7 +71,7 @@ namespace dotnet_file_associator.tests
             const string executable4 = "MyExecutable4.exe";
 
             var mruList = GetMRUListInstance();
-            Assert.IsEmpty(mruList!.ExecutablesInMRUOrder);
+            Assert.IsEmpty(mruList!.ExecutablesInMRUOrder, $"Found: {mruList.ExecutablesInMRUOrder.First()}");
 
             mruList.MakeExecutableMostRecentlyUsed(executable1);
             Assert.ContainsSingle(mruList.ExecutablesInMRUOrder);

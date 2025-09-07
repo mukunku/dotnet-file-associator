@@ -7,10 +7,10 @@ namespace dotnet_file_associator.tests
     {
         private JsonObject _rootStorage;
 
-        private static MockRegistry? _classesRootRegistry;
+        private MockRegistry? _classesRootRegistry;
         public IRegistry GetClassesRootRegistry => _classesRootRegistry ??= new MockRegistry(new JsonObject());
 
-        private static MockRegistry? _currentUserRegistry;
+        private MockRegistry? _currentUserRegistry;
         public IRegistry GetCurrentUserRegistry => _currentUserRegistry ??= new MockRegistry(new JsonObject());
 
         public bool RequiresAdministratorPrivileges => false;
