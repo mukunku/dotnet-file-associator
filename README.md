@@ -7,11 +7,12 @@ Easily set or remove default applications for specific file extensions programma
 
 #### Set a file association:
 ```csharp
-// Associates ".abc" files with MyApp.exe and sets a custom long name for the extension.
+using DotnetFileAssociator;
+
+// Associates ".abc" files with MyApp.exe.
 FileAssociator.SetFileAssociation(
     @"C:\Program Files\MyApp\MyApp.exe",
-    ".abc",
-    "My Custom File Type" //<-- Optional long name for the file type
+    ".abc"
 );
 ```
 
