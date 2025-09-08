@@ -213,7 +213,7 @@ namespace DotnetFileAssociator
         /// <exception cref="NotRunningAsAdministratorException">This operation requires Administrator privileges.</exception>
         public void SaveChanges()
         {
-            if (_registry.RequiresAdministratorPrivileges && !FileAssociator.IsRunningAsAdministrator)
+            if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
                 throw new NotRunningAsAdministratorException();
 
             using var extensionFileExplorerKey = _registry.GetCurrentUserRegistry.CreateSubKey(_fileExtensionRegistryKeyName);

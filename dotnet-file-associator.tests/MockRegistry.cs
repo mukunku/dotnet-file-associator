@@ -16,6 +16,9 @@ namespace dotnet_file_associator.tests
         private bool _requireAdminRights = false;
         public bool RequiresAdministratorPrivileges => _requireAdminRights;
 
+        private bool _isCurrentUserAdmin = true;
+        public bool IsCurrentUserAdministrator => _isCurrentUserAdmin;
+
         public MockRegistry() : this(new JsonObject())
         {
 
@@ -32,6 +35,11 @@ namespace dotnet_file_associator.tests
         public void RequireAdministratorRights(bool require)
         {
             _requireAdminRights = require;
+        }
+
+        public void SetCurrentUserAsAdmin(bool isAdmin)
+        {
+            _isCurrentUserAdmin = isAdmin;
         }
 
         public IRegistry CreateSubKey(string key)

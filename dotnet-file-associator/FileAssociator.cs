@@ -14,14 +14,7 @@ namespace DotnetFileAssociator
         private readonly IRegistry _registry;
         internal string ProgramId { get; }
 
-        /// <summary>
-        /// Returns true if the current process is running with administrator privileges.
-        /// </summary>
-        public static bool IsRunningAsAdministrator =>
-            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
-
         public string PathToExecutable { get; }
-
 
         /// <summary>
         /// Create a new file extension associator for a given executable.
@@ -73,7 +66,7 @@ namespace DotnetFileAssociator
         /// <remarks>The executable will become the default app for double-clicking files of this type. As well get added to the OpenWith list in Windows.</remarks>
         public void SetFileAssociation(FileExtensionDefinition fileExtension)
         {
-            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+            if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
                 throw new NotRunningAsAdministratorException();
 
             SetAsDefaultApp(fileExtension);
@@ -103,7 +96,7 @@ namespace DotnetFileAssociator
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         public void RemoveFileAssociation(FileExtensionDefinition fileExtension)
         {
-            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+            if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
                 throw new NotRunningAsAdministratorException();
 
             var wasUnset = UnsetAsDefaultApp(fileExtension);
@@ -134,7 +127,7 @@ namespace DotnetFileAssociator
         /// </summary>
         internal void DefineProgramId(FileExtensionDefinition fileExtension, string command)
         {
-            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+            if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
                 throw new NotRunningAsAdministratorException();
 
             //Create a program id entry for our executable

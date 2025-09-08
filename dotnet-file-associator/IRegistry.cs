@@ -6,6 +6,7 @@ namespace DotnetFileAssociator
     public interface IRegistry : IDisposable
     {
         public bool RequiresAdministratorPrivileges { get; }
+        public bool IsCurrentUserAdministrator { get; }
         public IRegistry GetClassesRootRegistry { get; }
         public IRegistry GetCurrentUserRegistry { get; }
 

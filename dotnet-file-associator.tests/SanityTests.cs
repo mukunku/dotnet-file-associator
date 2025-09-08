@@ -1,5 +1,4 @@
 ﻿using DotnetFileAssociator;
-using System.Diagnostics;
 
 namespace dotnet_file_associator.tests
 {
@@ -124,26 +123,21 @@ namespace dotnet_file_associator.tests
         {
             Assert.IsInstanceOfType(_registry, typeof(MockRegistry));
             var mockRegistry = (MockRegistry)_registry;
-            Debug.WriteLine($"0{_registry.RequiresAdministratorPrivileges} - {FileAssociator.IsRunningAsAdministrator}");
-            //Make our mock registry behave like the Windows registry by requiring admin rights
+
+            //Simulate Windows registry by requiring admin rights and not running as admin
             mockRegistry.RequireAdministratorRights(true);
-            Debug.WriteLine($"1{_registry.RequiresAdministratorPrivileges}");
+            mockRegistry.SetCurrentUserAsAdmin(false);
+
             //Make sure we can access properties and call methods without admin rights
             using var mruList = GetMRUListInstance();
-            Debug.WriteLine($"2{_registry.RequiresAdministratorPrivileges}");
             mruList.AssociateProgramId(_testFileAssociator!.ProgramId, false);
-            Debug.WriteLine($"3{_registry.RequiresAdministratorPrivileges}");
             Assert.IsNotEmpty(mruList.ExecutableProgramIds);
-            Debug.WriteLine($"4{_registry.RequiresAdministratorPrivileges}");
             mruList.MakeExecutableMostRecentlyUsed(Path.GetFileName(_testFileAssociator.PathToExecutable));
-            Debug.WriteLine($"5{_registry.RequiresAdministratorPrivileges}");
             Assert.IsNotEmpty(mruList.ExecutablesInMRUOrder);
-            Debug.WriteLine($"6{_registry.RequiresAdministratorPrivileges} - {FileAssociator.IsRunningAsAdministrator}");
 
             //Saving should require admin rights
             Assert.Throws<NotRunningAsAdministratorException>(() => { mruList.SaveChanges(); });
 
-            Debug.WriteLine($"7{_registry.RequiresAdministratorPrivileges}");
             //Creating a program id requires admin rights
             Assert.Throws<NotRunningAsAdministratorException>(() => { _testFileAssociator.DefineProgramId(_testFileExtension, "dummy command"); });
 

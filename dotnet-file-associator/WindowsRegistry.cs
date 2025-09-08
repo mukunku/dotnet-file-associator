@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace DotnetFileAssociator
 {
@@ -22,6 +23,12 @@ namespace DotnetFileAssociator
 
         public bool RequiresAdministratorPrivileges => true;
 
+        /// <summary>
+        /// Returns true if the current process is running with administrator privileges.
+        /// </summary>
+        public bool IsCurrentUserAdministrator => 
+            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+        
         public IRegistry CreateSubKey(string key)
             => new WindowsRegistry(_registryKey.CreateSubKey(key));
 
