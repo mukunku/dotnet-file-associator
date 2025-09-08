@@ -32,17 +32,12 @@ jobs:
         run: dotnet pack dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-build --output ./nupkg
 
       - name: Add GitHub Packages as a NuGet source
-        run: dotnet nuget add source --username mukunku --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name "github" "https://nuget.pkg.github.com/mukunku/index.json"
+        run: dotnet nuget add source --username mukunku --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/mukunku/index.json"
 
       - name: Publish to GitHub Packages
         run: dotnet nuget push "*.nupkg" --source "github" --skip-duplicate 
         working-directory: ./nupkg
-        #--api-key ${{ secrets.GITHUB_TOKEN }}
-        #env:
-          #NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      #- name: Publish to NuGet.org (optional)
-        #if: github.event_name == 'push'
-        #run: dotnet nuget push ./nupkg/*.nupkg --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_API_KEY }}
-        #env:
-        #  NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      - name: Publish to NuGet.org
+        run: dotnet nuget push "*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_ORG_APIKEY }}
+        working-directory: ./nupkg
