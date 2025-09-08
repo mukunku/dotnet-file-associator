@@ -124,7 +124,7 @@ namespace dotnet_file_associator.tests
         {
             Assert.IsInstanceOfType(_registry, typeof(MockRegistry));
             var mockRegistry = (MockRegistry)_registry;
-            Debug.WriteLine($"0{_registry.RequiresAdministratorPrivileges}");
+            Debug.WriteLine($"0{_registry.RequiresAdministratorPrivileges} - {FileAssociator.IsRunningAsAdministrator}");
             //Make our mock registry behave like the Windows registry by requiring admin rights
             mockRegistry.RequireAdministratorRights(true);
             Debug.WriteLine($"1{_registry.RequiresAdministratorPrivileges}");
@@ -138,7 +138,7 @@ namespace dotnet_file_associator.tests
             mruList.MakeExecutableMostRecentlyUsed(Path.GetFileName(_testFileAssociator.PathToExecutable));
             Debug.WriteLine($"5{_registry.RequiresAdministratorPrivileges}");
             Assert.IsNotEmpty(mruList.ExecutablesInMRUOrder);
-            Debug.WriteLine($"6{_registry.RequiresAdministratorPrivileges}");
+            Debug.WriteLine($"6{_registry.RequiresAdministratorPrivileges} - {FileAssociator.IsRunningAsAdministrator}");
 
             //Saving should require admin rights
             Assert.Throws<NotRunningAsAdministratorException>(() => { mruList.SaveChanges(); });
