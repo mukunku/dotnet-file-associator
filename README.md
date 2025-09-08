@@ -1,7 +1,9 @@
-# dotnet-file-associator
+# dotnet-file-associator [![NuGet version](https://badge.fury.io/nu/dotnet-file-associator.svg)](https://www.nuget.org/packages/dotnet-file-associator)
+
 C# library and .NET tool for managing file extension associations on Windows 10/11.
 
 Easily set or remove default applications for specific file extensions programmatically, with full registry integration.
+
 
 # Example Usages
 
