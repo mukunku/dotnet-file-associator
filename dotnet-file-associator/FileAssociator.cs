@@ -11,26 +11,28 @@ namespace DotnetFileAssociator
         private const int MAX_WINDOWS_REGISTRY_KEY_LENGTH = 255; //https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-element-size-limits
 
         private readonly string _exeName;
-        internal readonly string ProgramId;
         private readonly IRegistry _registry;
+        internal string ProgramId { get; }
+
+        /// <summary>
+        /// Returns true if the current process is running with administrator privileges.
+        /// </summary>
+        public static bool IsRunningAsAdministrator =>
+            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
         public string PathToExecutable { get; }
-        
+
+
         /// <summary>
         /// Create a new file extension associator for a given executable.
-        /// !Important!: Requires that the current runtime has administrator rights due to Registry access.
         /// </summary>
-        /// <param name="pathToExecutable">
-        /// Path to executable to be launched when a file is double-clicked.
-        /// Executable must exist, otherwise an exception is thrown.
-        /// </param>
-        /// <exception cref="NotRunningAsAdministratorException">Thrown if constructor is called without administrator rights.</exception>
+        /// <param name="pathToExecutable">Path to executable to be launched when a file is double-clicked.</param>
         /// <exception cref="FileNotFoundException">Thrown if the provided executable does not exist within the file system.</exception>
+        /// <remarks>Keep in mind setting and removing file associations require administrator access.
+        /// Checking if a file association was previously set does not require administrator access.</remarks>
         public FileAssociator(string pathToExecutable, IRegistry? registry = null)
         {
             _registry = registry ?? new WindowsRegistry();
-            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
-                throw new NotRunningAsAdministratorException();
 
             if (!File.Exists(pathToExecutable))
                 throw new FileNotFoundException("Executable not found.", pathToExecutable);
@@ -47,7 +49,7 @@ namespace DotnetFileAssociator
         }
 
         /// <summary>
-        /// 
+        /// Associates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
         /// </summary>
         /// <param name="pathToExecutable">Path to executable that should be used to open <paramref name="extension"/> files.</param>
         /// <param name="extension">File extension with or without the dot "." in the beginning.</param>
@@ -55,27 +57,55 @@ namespace DotnetFileAssociator
         /// E.g. ".pdf" => "Portable Document Format File", ".png" => "Portable Network Graphics Image"</param>
         /// <exception cref="ArgumentNullException">Thrown if no file extension is provided.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if the provided file extension is too long.</exception>
-        /// <exception cref="ArgumentException">Thrown if the provided file extension contains illegal characters</exception>
+        /// <exception cref="ArgumentException">Thrown if the provided file extension contains illegal characters.</exception>
+        /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         public static void SetFileAssociation(string pathToExecutable, string extension, string? extensionLongName = null)
-            => new FileAssociator(pathToExecutable).SetFileAssociation(new FileExtensionDefinition(extension, extensionLongName));
+        {
+            using var fileAssociator = new FileAssociator(pathToExecutable);
+            fileAssociator.SetFileAssociation(new FileExtensionDefinition(extension, extensionLongName));
+        }
 
         /// <summary>
-        /// 
+        /// Associates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
         /// </summary>
-        /// <param name="fileExtensionAssociation"></param>
-        /// <exception cref="NotRunningAsAdministratorException"></exception>
+        /// <param name="fileExtension">File extension to associate the executable with</param>
+        /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
+        /// <remarks>The executable will become the default app for double-clicking files of this type. As well get added to the OpenWith list in Windows.</remarks>
         public void SetFileAssociation(FileExtensionDefinition fileExtension)
         {
+            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+                throw new NotRunningAsAdministratorException();
+
             SetAsDefaultApp(fileExtension);
             AddToOpenWithListForCurrentUser(fileExtension);
             NotifyWindowsFileExplorer();
         }
 
+        /// <summary>
+        /// Deasssociates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
+        /// </summary>
+        /// <param name="pathToExecutable">Path to executable that should no longer be used to open <paramref name="extension"/> files.</param>
+        /// <param name="extension">File extension with or without the dot "." in the beginning.</param>
+        /// <exception cref="ArgumentNullException">Thrown if no file extension is provided.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the provided file extension is too long.</exception>
+        /// <exception cref="ArgumentException">Thrown if the provided file extension contains illegal characters.</exception>
+        /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         public static void RemoveFileAssociation(string pathToExecutable, string extension)
-            => new FileAssociator(pathToExecutable).RemoveFileAssociation(new FileExtensionDefinition(extension));
+        {
+            using var fileAssociator = new FileAssociator(pathToExecutable);
+            fileAssociator.RemoveFileAssociation(new FileExtensionDefinition(extension));
+        }
 
+        /// <summary>
+        /// Deasssociates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
+        /// </summary>
+        /// <param name="fileExtension">File extension to associate the executable with</param>
+        /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         public void RemoveFileAssociation(FileExtensionDefinition fileExtension)
         {
+            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+                throw new NotRunningAsAdministratorException();
+
             var wasUnset = UnsetAsDefaultApp(fileExtension);
             var wasRemoved = RemoveFromOpenWithListForCurrentUser(fileExtension);
             if (wasUnset || wasRemoved)
@@ -104,6 +134,9 @@ namespace DotnetFileAssociator
         /// </summary>
         internal void DefineProgramId(FileExtensionDefinition fileExtension, string command)
         {
+            if (_registry.RequiresAdministratorPrivileges && !IsRunningAsAdministrator)
+                throw new NotRunningAsAdministratorException();
+
             //Create a program id entry for our executable
             using var programIdKey = _registry.GetClassesRootRegistry.CreateSubKey(ProgramId);
 
@@ -142,7 +175,7 @@ namespace DotnetFileAssociator
         /// <param name="fileExtension">File extension to associate with <see cref="PathToExecutable"/></param>
         private void AddToOpenWithListForCurrentUser(FileExtensionDefinition fileExtension)
         {
-            var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
+            using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
             mruList.MakeExecutableMostRecentlyUsed(_exeName);
             mruList.AssociateProgramId(ProgramId);
             mruList.SaveChanges();
@@ -155,7 +188,7 @@ namespace DotnetFileAssociator
         /// <returns>True if anything was actually removed. False, otherwise.</returns>
         private bool RemoveFromOpenWithListForCurrentUser(FileExtensionDefinition fileExtension)
         {
-            var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
+            using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
             var wasRemoved = mruList.RemoveExecutableFromRecentlyUsedList(_exeName);
             var wasDisassociated = mruList.DisassociateProgramId(ProgramId);
             if (wasRemoved || wasDisassociated)
@@ -166,25 +199,41 @@ namespace DotnetFileAssociator
             return false;
         }
 
+        /// <summary>
+        /// Checks if <see cref="PathToExecutable"/> has been previously associated with <paramref name="extension"/> files.
+        /// </summary>
+        /// <param name="pathToExecutable">Path to executable that should no longer be used to open <paramref name="extension"/> files.</param>
+        /// <param name="extension">File extension with or without the dot "." in the beginning.</param>
+        /// <remarks>Administrator access is NOT required for this method.</remarks>
         public static bool IsFileAssociationSet(string pathToExecutable, string extension)
-            => new FileAssociator(pathToExecutable).IsFileAssociationSet(new FileExtensionDefinition(extension));
+        {
+            using var fileAssociator = new FileAssociator(pathToExecutable);
+            return fileAssociator.IsFileAssociationSet(new FileExtensionDefinition(extension));
+        }
 
         /// <summary>
-        /// Checks if <see cref="PathToExecutable"/> has been previously associated with <paramref name="fileExtension"/>.
+        /// Checks if <see cref="PathToExecutable"/> has been previously associated with <paramref name="fileExtension"/> files.
         /// </summary>
         /// <param name="fileExtension">File extension to check association with.</param>
+        /// <remarks>Administrator access is NOT required for this method.</remarks>
         public bool IsFileAssociationSet(FileExtensionDefinition fileExtension)
             => IsSetAsDefaultApp(fileExtension) && IsInOpenWithListForCurrentUser(fileExtension);
 
         private bool IsSetAsDefaultApp(FileExtensionDefinition fileExtension)
         {
-            using var extensionKey = _registry.GetClassesRootRegistry.CreateSubKey(fileExtension.Extension);
+            using var extensionKey = _registry.GetClassesRootRegistry.OpenSubKey(fileExtension.Extension);
+            if (extensionKey is null)
+                return false;
+
             var defaultProgramId = extensionKey.GetValue(null);
             return ProgramId.Equals(defaultProgramId);
         }
 
         private bool IsInOpenWithListForCurrentUser(FileExtensionDefinition fileExtension)
-            => new FileExplorerOpenWithMRUList(fileExtension, _registry).ExecutablesInMRUOrder.Contains(this._exeName);
+        {
+            using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
+            return mruList.ExecutablesInMRUOrder.Contains(this._exeName);
+        }
 
         private static void NotifyWindowsFileExplorer()
             => SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero);
@@ -200,8 +249,5 @@ namespace DotnetFileAssociator
             }
             catch { /*swallow*/ }
         }
-
-        public static bool IsRunningAsAdministrator =>
-            new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
     }
 }

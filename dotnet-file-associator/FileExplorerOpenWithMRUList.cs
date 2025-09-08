@@ -7,11 +7,17 @@ using System.Linq;
 
 namespace DotnetFileAssociator
 {
-    internal class FileExplorerOpenWithMRUList
+    internal class FileExplorerOpenWithMRUList : IDisposable
     {
         private IRegistry _registry;
-        private FileExtensionDefinition _fileExtensionDefinition;
         private OrderedDictionary _executablesInMRUOrder = new();
+        private Dictionary<string, bool> _executableProgramIds = new();
+
+        private string _fileExtensionRegistryKeyName
+            => $@"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\{FileExtension.Extension}";
+
+        public FileExtensionDefinition FileExtension { get; }
+
         public IReadOnlyList<string> ExecutablesInMRUOrder
         {
             get
@@ -25,7 +31,6 @@ namespace DotnetFileAssociator
             }
         }
 
-        private Dictionary<string, bool> _executableProgramIds = new();
         public IReadOnlyList<string> ExecutableProgramIds => _executableProgramIds.Keys.ToList().AsReadOnly();
 
         /// <summary>
@@ -35,18 +40,19 @@ namespace DotnetFileAssociator
         /// <remarks>This type doesn't always provide everything shown in the Windows
         /// File Explorer Open With dialog. However adding new entries here will
         /// allow the exe to show up in the list.</remarks>
-        internal FileExplorerOpenWithMRUList(FileExtensionDefinition fileExtensionDefinition, IRegistry registry)
+        internal FileExplorerOpenWithMRUList(FileExtensionDefinition fileExtension, IRegistry registry)
         {
             if (registry is null)
                 throw new ArgumentNullException(nameof(registry));
 
             _registry = registry;
-            _fileExtensionDefinition = fileExtensionDefinition;
+            FileExtension = fileExtension;
             ReloadAllEntries();
         }
 
         internal void ReloadAllEntries()
         {
+            //TODO: Make these work with read-only access
             ReloadOpenWithListEntries();
             ReloadOpenWithProgidsEntries();
         }
@@ -54,8 +60,17 @@ namespace DotnetFileAssociator
         private void ReloadOpenWithListEntries()
         {
             _executablesInMRUOrder.Clear();
-            using var extensionFileExplorerKey = GetFileExtensionRegistryKey();
-            using var openWithListKey = extensionFileExplorerKey.CreateSubKey("OpenWithList");
+            using var extensionFileExplorerKey = _registry.GetCurrentUserRegistry.OpenSubKey(_fileExtensionRegistryKeyName);
+            if (extensionFileExplorerKey is null)
+            {
+                return;
+            }
+
+            using var openWithListKey = extensionFileExplorerKey.OpenSubKey("OpenWithList");
+            if (openWithListKey is null)
+            {
+                return;
+            }
 
             //Get all the previous executables used to open this extension
             Dictionary<string, string> previousExecutables = new();
@@ -93,8 +108,17 @@ namespace DotnetFileAssociator
         private void ReloadOpenWithProgidsEntries()
         {
             _executableProgramIds.Clear();
-            using var extensionFileExplorerKey = GetFileExtensionRegistryKey();
-            using var openWithProgidsKey = extensionFileExplorerKey.CreateSubKey("OpenWithProgids");
+            using var extensionFileExplorerKey = _registry.GetCurrentUserRegistry.OpenSubKey(_fileExtensionRegistryKeyName);
+            if (extensionFileExplorerKey is null)
+            {
+                return;
+            }
+
+            using var openWithProgidsKey = extensionFileExplorerKey.OpenSubKey("OpenWithProgids");
+            if (openWithProgidsKey is null)
+            {
+                return;
+            }
 
             foreach (var valueName in openWithProgidsKey.GetValueNames())
             {
@@ -105,10 +129,6 @@ namespace DotnetFileAssociator
                 _executableProgramIds.Add(valueName, toBeDeleted);
             }
         }
-
-        /// <remarks>Don't forget to Dispose()!</remarks>
-        private IRegistry GetFileExtensionRegistryKey()
-            => _registry.GetCurrentUserRegistry.CreateSubKey($@"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\{_fileExtensionDefinition.Extension}");
 
         /// <summary>
         /// Marks the provided exe to be saved as the most recently used exe in the MRU list.
@@ -184,16 +204,20 @@ namespace DotnetFileAssociator
                     return true;
                 }
             }
-            
+
             return false;
         }
 
         /// <summary>
-        /// Saves the current MRU exe order into the registry, creating new entries for any new letters
+        /// Saves the current MRU exe order and program ids into the registry, creating new entries for any new MRU list letters
         /// </summary>
+        /// <exception cref="NotRunningAsAdministratorException">This operation requires Administrator privileges.</exception>
         public void SaveChanges()
         {
-            using var extensionFileExplorerKey = GetFileExtensionRegistryKey();
+            if (_registry.RequiresAdministratorPrivileges && !FileAssociator.IsRunningAsAdministrator)
+                throw new NotRunningAsAdministratorException();
+
+            using var extensionFileExplorerKey = _registry.GetCurrentUserRegistry.CreateSubKey(_fileExtensionRegistryKeyName);
             using var openWithListKey = extensionFileExplorerKey.CreateSubKey("OpenWithList");
 
             #region Save OpenWithList SubKey
@@ -237,6 +261,9 @@ namespace DotnetFileAssociator
         /// </summary>
         /// <param name="programId">The program id to link to the file extension.</param>
         /// <param name="throwIfProgramIdIsNotRegistered">Whether to validate <paramref name="programId"/>exists under HKEY_CLASSES_ROOT.</param>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the provided <paramref name="programId"/> does not exist in the registry and <paramref name="throwIfProgramIdIsNotRegistered"/> is true.
+        /// </exception>
         public void AssociateProgramId(string programId, bool throwIfProgramIdIsNotRegistered = true)
         {
             if (_executableProgramIds.ContainsKey(programId))
@@ -244,10 +271,10 @@ namespace DotnetFileAssociator
                 _executableProgramIds[programId] = false; //Mark it as not to be deleted, just in-case
                 return;
             }
-            
+
             if (throwIfProgramIdIsNotRegistered && _registry.GetClassesRootRegistry.OpenSubKey(programId) is null)
             {
-                throw new InvalidOperationException($"Cannot associate program id '{programId}' with extension '{_fileExtensionDefinition.Extension}' " +
+                throw new InvalidOperationException($"Cannot associate program id '{programId}' with extension '{FileExtension.Extension}' " +
                     @$"as it does not exist at 'HKEY_CLASSES_ROOT\{programId}'");
             }
 
@@ -282,6 +309,15 @@ namespace DotnetFileAssociator
             {
                 yield return c.ToString();
             }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                this._registry.Dispose();
+            }
+            catch { /*swallow*/ }
         }
     }
 }

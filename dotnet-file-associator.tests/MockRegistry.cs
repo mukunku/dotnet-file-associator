@@ -13,11 +13,12 @@ namespace dotnet_file_associator.tests
         private MockRegistry? _currentUserRegistry;
         public IRegistry GetCurrentUserRegistry => _currentUserRegistry ??= new MockRegistry(new JsonObject());
 
-        public bool RequiresAdministratorPrivileges => false;
+        private bool _requireAdminRights = false;
+        public bool RequiresAdministratorPrivileges => _requireAdminRights;
 
         public MockRegistry() : this(new JsonObject())
         {
-            
+
         }
 
         public MockRegistry(JsonObject rootStorage)
@@ -26,6 +27,11 @@ namespace dotnet_file_associator.tests
                 throw new ArgumentNullException(nameof(rootStorage));
 
             _rootStorage = rootStorage;
+        }
+
+        public void RequireAdministratorRights(bool require)
+        {
+            _requireAdminRights = require;
         }
 
         public IRegistry CreateSubKey(string key)

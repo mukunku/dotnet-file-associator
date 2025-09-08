@@ -18,6 +18,13 @@ namespace dotnet_file_associator.tests
             _testFileAssociator = new FileAssociator(Path.GetTempFileName(), _registry);
         }
 
+        [TestCleanup]
+        public void CleanupTest()
+        {
+            _registry?.Dispose();
+            _testFileAssociator?.Dispose();
+        }
+
         [TestMethod]
         public void FileAssociationTest()
         {
@@ -31,10 +38,10 @@ namespace dotnet_file_associator.tests
         [TestMethod]
         public void MRUListProgramIdTest()
         {
-            var mruList = GetMRUListInstance();
+            using var mruList = GetMRUListInstance();
             Assert.IsFalse(mruList!.DisassociateProgramId(_testFileAssociator!.ProgramId), "There shouldn't be an associated program id yet");
 
-            Assert.Throws<InvalidOperationException>(() => { mruList.AssociateProgramId(_testFileAssociator.ProgramId); }, 
+            Assert.Throws<InvalidOperationException>(() => { mruList.AssociateProgramId(_testFileAssociator.ProgramId); },
                 "The program id shouldn't be defined yet which should have caused an exception to be thrown");
 
             //Actually define the program id now
@@ -70,7 +77,7 @@ namespace dotnet_file_associator.tests
             const string executable3 = "MyExecutable3.exe";
             const string executable4 = "MyExecutable4.exe";
 
-            var mruList = GetMRUListInstance();
+            using var mruList = GetMRUListInstance();
             Assert.IsEmpty(mruList!.ExecutablesInMRUOrder, $"Found: {mruList.ExecutablesInMRUOrder.First()}");
 
             mruList.MakeExecutableMostRecentlyUsed(executable1);
@@ -109,6 +116,36 @@ namespace dotnet_file_associator.tests
             Assert.HasCount(2, mruList.ExecutablesInMRUOrder);
             Assert.AreEqual(executable4, mruList.ExecutablesInMRUOrder.First());
             Assert.AreEqual(executable1, mruList.ExecutablesInMRUOrder.Last());
+        }
+
+        [TestMethod]
+        public void AdministratorRightsTest()
+        {
+            Assert.IsInstanceOfType(_registry, typeof(MockRegistry));
+            var mockRegistry = (MockRegistry)_registry;
+
+            //Make our mock registry behave like the Windows registry by requiring admin rights
+            mockRegistry.RequireAdministratorRights(true);
+
+            //Make sure we can access properties and call methods without admin rights
+            using var mruList = GetMRUListInstance();
+            mruList.AssociateProgramId(_testFileAssociator!.ProgramId, false);
+            Assert.IsNotEmpty(mruList.ExecutableProgramIds);
+            mruList.MakeExecutableMostRecentlyUsed(Path.GetFileName(_testFileAssociator.PathToExecutable));
+            Assert.IsNotEmpty(mruList.ExecutablesInMRUOrder);
+
+            //Saving should require admin rights
+            Assert.Throws<NotRunningAsAdministratorException>(() => { mruList.SaveChanges(); });
+
+            //Creating a program id requires admin rights
+            Assert.Throws<NotRunningAsAdministratorException>(() => { _testFileAssociator.DefineProgramId(_testFileExtension, "dummy command"); });
+
+            //This shouldn't require admin rights
+            Assert.IsFalse(_testFileAssociator.IsFileAssociationSet(_testFileExtension), "File association shouldn't exist");
+
+            //Setting and Removing should also require admin rights
+            Assert.Throws<NotRunningAsAdministratorException>(() => { _testFileAssociator.SetFileAssociation(_testFileExtension); });
+            Assert.Throws<NotRunningAsAdministratorException>(() => { _testFileAssociator.RemoveFileAssociation(_testFileExtension); });
         }
     }
 }
