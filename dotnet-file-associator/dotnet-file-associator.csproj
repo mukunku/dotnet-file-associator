@@ -11,7 +11,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/mukunku/dotnet-file-associator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>file extension;associate,default file</PackageTags>
+    <PackageTags>file extension;associate;default file</PackageTags>
     <PackageReleaseNotes>Initial release</PackageReleaseNotes>
     <PackAsTool>False</PackAsTool>
     <AssemblyVersion>0.1.3.0</AssemblyVersion>

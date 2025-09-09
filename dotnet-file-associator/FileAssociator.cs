@@ -67,6 +67,7 @@ namespace DotnetFileAssociator
         /// <exception cref="ArgumentOutOfRangeException">Thrown if the provided file extension is too long.</exception>
         /// <exception cref="ArgumentException">Thrown if the provided file extension contains illegal characters.</exception>
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
+        /// <exception cref="FileNotFoundException"> Thrown if the provided executable does not exist within the file system.</exception>
         public static void SetFileAssociation(string pathToExecutable, string extension, string? extensionLongName = null)
         {
             using var fileAssociator = new FileAssociator(pathToExecutable);
@@ -98,6 +99,7 @@ namespace DotnetFileAssociator
         /// <exception cref="ArgumentOutOfRangeException">Thrown if the provided file extension is too long.</exception>
         /// <exception cref="ArgumentException">Thrown if the provided file extension contains illegal characters.</exception>
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
+        /// <exception cref="FileNotFoundException">Thrown if the provided executable does not exist within the file system.</exception>
         public static void RemoveFileAssociation(string pathToExecutable, string extension)
         {
             using var fileAssociator = new FileAssociator(pathToExecutable);
@@ -221,6 +223,7 @@ namespace DotnetFileAssociator
         /// <param name="pathToExecutable">Path to executable that should no longer be used to open <paramref name="extension"/> files.</param>
         /// <param name="extension">File extension with or without the dot "." in the beginning.</param>
         /// <remarks>Administrator access is NOT required for this method.</remarks>
+        /// <exception cref="FileNotFoundException">Thrown if the provided executable does not exist within the file system.</exception>
         public static bool IsFileAssociationSet(string pathToExecutable, string extension)
         {
             using var fileAssociator = new FileAssociator(pathToExecutable);
