@@ -11,7 +11,7 @@ namespace DotnetFileAssociator
 
         private readonly string _exeName;
         private readonly IRegistry _registry;
-        internal string ProgramId { get; }
+        private string _programId;
 
         public string PathToExecutable { get; }
 
@@ -34,10 +34,26 @@ namespace DotnetFileAssociator
             _exeName = Path.GetFileName(pathToExecutable);
 
             //We need a unique-ish app id to save to the registry. We append a suffix so we don't accidentally overwrite an existing ProgId entry.
-            ProgramId = _exeName.Replace(" ", string.Empty) + ".dotnet-file-associator";
+            _programId = _exeName.Replace(" ", string.Empty) + ".dotnet-file-associator";
 
-            if (ProgramId.Length > MAX_WINDOWS_REGISTRY_KEY_LENGTH)
+            if (_programId.Length > MAX_WINDOWS_REGISTRY_KEY_LENGTH)
                 throw new ArgumentOutOfRangeException(nameof(pathToExecutable), "Executable name is too long.");
+        }
+
+        /// <summary>
+        /// Overrides the default, internally generated, program id that is used to create registry entries.
+        /// Useful when you already have a ProgId entry in the registry you want to reuse.
+        /// </summary>
+        /// <param name="newProgramId">Make sure the provided id is unique and does not conflict with existing entries.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="newProgramId"/> is longer than <see cref="MAX_WINDOWS_REGISTRY_KEY_LENGTH"/> characters</exception>
+        /// <remarks>CAUTION: It's possible to significantly mess up the system's file associations if you are not careful: 
+        /// make sure you provide a unique <paramref name="newProgramId"/> value</remarks>
+        public void OverideProgramId(string newProgramId)
+        {
+            if (newProgramId.Length > MAX_WINDOWS_REGISTRY_KEY_LENGTH)
+                throw new ArgumentOutOfRangeException(nameof(newProgramId), "Program Id is too long.");
+
+            _programId = newProgramId;
         }
 
         /// <summary>
@@ -119,7 +135,7 @@ namespace DotnetFileAssociator
 
             //Finally, set our program id entry as the default for the extension
             using var extensionKey = _registry.GetClassesRootRegistry.CreateSubKey(fileExtension.Extension);
-            extensionKey.SetValue(null, ProgramId);
+            extensionKey.SetValue(null, _programId);
         }
 
         /// <summary>
@@ -137,7 +153,7 @@ namespace DotnetFileAssociator
                 throw new ArgumentException("The command must contain both '{0}' and '%1' placeholders.", nameof(command));
 
             //Create a program id entry for our executable
-            using var programIdKey = _registry.GetClassesRootRegistry.CreateSubKey(ProgramId);
+            using var programIdKey = _registry.GetClassesRootRegistry.CreateSubKey(_programId);
 
             //Set the long name of the extension the executable supports
             programIdKey.SetValue(null, fileExtension.ExtensionLongName);
@@ -160,7 +176,7 @@ namespace DotnetFileAssociator
         {
             using var extensionKey = _registry.GetClassesRootRegistry.CreateSubKey(fileExtension.Extension);
             var defaultProgramId = extensionKey.GetValue(null);
-            if (ProgramId.Equals(defaultProgramId))
+            if (_programId.Equals(defaultProgramId))
             {
                 //We don't know what the new default executable should be so the only solution is to have no default
                 _registry.GetClassesRootRegistry.DeleteSubKeyTree(fileExtension.Extension);
@@ -177,7 +193,7 @@ namespace DotnetFileAssociator
         {
             using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
             mruList.MakeExecutableMostRecentlyUsed(_exeName);
-            mruList.AssociateProgramId(ProgramId);
+            mruList.AssociateProgramId(_programId);
             mruList.SaveChanges();
         }
 
@@ -190,7 +206,7 @@ namespace DotnetFileAssociator
         {
             using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
             var wasRemoved = mruList.RemoveExecutableFromRecentlyUsedList(_exeName);
-            var wasDisassociated = mruList.DisassociateProgramId(ProgramId);
+            var wasDisassociated = mruList.DisassociateProgramId(_programId);
             if (wasRemoved || wasDisassociated)
             {
                 mruList.SaveChanges();
@@ -226,12 +242,12 @@ namespace DotnetFileAssociator
                 return false;
 
             var defaultProgramId = extensionKey.GetValue(null);
-            return ProgramId.Equals(defaultProgramId);
+            return _programId.Equals(defaultProgramId);
         }
 
         private bool IsProgramIdDefined()
         {
-            using var programIdKey = _registry.GetClassesRootRegistry.OpenSubKey(ProgramId);
+            using var programIdKey = _registry.GetClassesRootRegistry.OpenSubKey(_programId);
             if (programIdKey is null)
                 return false;
 

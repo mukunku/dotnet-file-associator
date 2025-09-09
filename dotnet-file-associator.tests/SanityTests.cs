@@ -5,6 +5,7 @@ namespace dotnet_file_associator.tests
     [TestClass]
     public sealed class SanityTests
     {
+        private const string DUMMY_PROGRAM_ID = "DotnetFileAssociator.Tests.DummyApp";
         private IRegistry? _registry;
         private FileAssociator? _testFileAssociator;
         private FileExtensionDefinition _testFileExtension = new FileExtensionDefinition(".test", "Test File");
@@ -16,6 +17,7 @@ namespace dotnet_file_associator.tests
         {
             _registry = new MockRegistry();
             _testFileAssociator = new FileAssociator(Path.GetTempFileName(), _registry);
+            _testFileAssociator.OverideProgramId(DUMMY_PROGRAM_ID);
         }
 
         [TestCleanup]
@@ -39,34 +41,34 @@ namespace dotnet_file_associator.tests
         public void MRUListProgramIdTest()
         {
             using var mruList = GetMRUListInstance();
-            Assert.IsFalse(mruList!.DisassociateProgramId(_testFileAssociator!.ProgramId), "There shouldn't be an associated program id yet");
+            Assert.IsFalse(mruList!.DisassociateProgramId(DUMMY_PROGRAM_ID), "There shouldn't be an associated program id yet");
 
-            Assert.Throws<InvalidOperationException>(() => { mruList.AssociateProgramId(_testFileAssociator.ProgramId); },
+            Assert.Throws<InvalidOperationException>(() => { mruList.AssociateProgramId(DUMMY_PROGRAM_ID); },
                 "The program id shouldn't be defined yet which should have caused an exception to be thrown");
 
             //Actually define the program id now
             _testFileAssociator!.DefineProgramId(_testFileExtension, "\"{0}\" \"%1\"");
 
             //Now it should work since the program id is defined
-            mruList.AssociateProgramId(_testFileAssociator.ProgramId);
+            mruList.AssociateProgramId(DUMMY_PROGRAM_ID);
 
             //Confirm it was associated as expected
-            Assert.IsTrue(mruList.DisassociateProgramId(_testFileAssociator.ProgramId), "The program id wasn't associated with the extension when it should have been");
+            Assert.IsTrue(mruList.DisassociateProgramId(DUMMY_PROGRAM_ID), "The program id wasn't associated with the extension when it should have been");
 
             //Associate again
-            mruList.AssociateProgramId(_testFileAssociator.ProgramId);
+            mruList.AssociateProgramId(DUMMY_PROGRAM_ID);
 
             //Reload state to confirm nothing was persisted to disk
             mruList.ReloadAllEntries();
-            Assert.IsFalse(mruList.DisassociateProgramId(_testFileAssociator!.ProgramId), "The association shouldn't have existed because we didn't call SaveChanges() yet");
+            Assert.IsFalse(mruList.DisassociateProgramId(DUMMY_PROGRAM_ID), "The association shouldn't have existed because we didn't call SaveChanges() yet");
 
             //Associate again and this time call SaveChanges()
-            mruList.AssociateProgramId(_testFileAssociator.ProgramId);
+            mruList.AssociateProgramId(DUMMY_PROGRAM_ID);
             mruList.SaveChanges();
 
             //Reload state to confirm it was persisted to disk
             mruList.ReloadAllEntries();
-            Assert.IsTrue(mruList.DisassociateProgramId(_testFileAssociator.ProgramId), "The program id wasn't associated with the extension when it should have been");
+            Assert.IsTrue(mruList.DisassociateProgramId(DUMMY_PROGRAM_ID), "The program id wasn't associated with the extension when it should have been");
         }
 
         [TestMethod]
@@ -130,7 +132,7 @@ namespace dotnet_file_associator.tests
 
             //Make sure we can access properties and call methods without admin rights
             using var mruList = GetMRUListInstance();
-            mruList.AssociateProgramId(_testFileAssociator!.ProgramId, false);
+            mruList.AssociateProgramId(DUMMY_PROGRAM_ID, false);
             Assert.IsNotEmpty(mruList.ExecutableProgramIds);
             mruList.MakeExecutableMostRecentlyUsed(Path.GetFileName(_testFileAssociator.PathToExecutable));
             Assert.IsNotEmpty(mruList.ExecutablesInMRUOrder);
