@@ -51,7 +51,6 @@ namespace DotnetFileAssociator
 
         internal void ReloadAllEntries()
         {
-            //TODO: Make these work with read-only access
             ReloadOpenWithListEntries();
             ReloadOpenWithProgidsEntries();
         }
