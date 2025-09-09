@@ -64,7 +64,7 @@ namespace DotnetFileAssociator
         /// </summary>
         /// <param name="fileExtension">File extension to associate the executable with</param>
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
-        /// <remarks>The executable will become the default app for double-clicking files of this type. As well get added to the OpenWith list in Windows.</remarks>
+        /// <remarks>The executable will become the default app for double-clicking files of this type. It will also get added to the OpenWith list in Windows.</remarks>
         public void SetFileAssociation(FileExtensionDefinition fileExtension)
         {
             if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
@@ -112,6 +112,8 @@ namespace DotnetFileAssociator
         /// <param name="fileExtension">File extension to associate with <see cref="PathToExecutable"/></param>
         /// <param name="command">The command to be executed when a file with the given extension is double-clicked.
         /// Here '{0}' will be the path to your executable and %1 will be the absolute path to the file that was double clicked</param>
+        /// <exception cref="NotRunningAsAdministratorException">Thrown when called while not running as administrator.</exception>
+        /// <exception cref="ArgumentException">Thrown when an invalid command is passed.</exception>
         private void SetAsDefaultApp(FileExtensionDefinition fileExtension, string command = "\"{0}\" \"%1\"")
         {
             //Create a program id entry for our executable
@@ -126,10 +128,15 @@ namespace DotnetFileAssociator
         /// Creates an entry under \HKEY_CLASSES_ROOT\<program-id> that can be referenced as
         /// the extension's default program and be added to the MRU List for that extension.
         /// </summary>
+        /// <exception cref="NotRunningAsAdministratorException">Thrown when called while not running as administrator.</exception>
+        /// <exception cref="ArgumentException">Thrown when an invalid command is passed.</exception>
         internal void DefineProgramId(FileExtensionDefinition fileExtension, string command)
         {
             if (_registry.RequiresAdministratorPrivileges && !_registry.IsCurrentUserAdministrator)
                 throw new NotRunningAsAdministratorException();
+
+            if (!command.Contains("{0}") || !command.Contains("%1"))
+                throw new ArgumentException("The command must contain both '{0}' and '%1' placeholders.", nameof(command));
 
             //Create a program id entry for our executable
             using var programIdKey = _registry.GetClassesRootRegistry.CreateSubKey(ProgramId);
@@ -142,7 +149,8 @@ namespace DotnetFileAssociator
 
             //Set the command to be run when a user opens a file with the given extension
             using var commandKey = openKey.CreateSubKey("command");
-            commandKey.SetValue(null, string.Format(CultureInfo.InvariantCulture, command, PathToExecutable));
+            command = string.Format(CultureInfo.InvariantCulture, command, PathToExecutable);
+            commandKey.SetValue(null, command);
         }
 
         /// <summary>
