@@ -219,7 +219,7 @@ namespace DotnetFileAssociator
         /// <param name="fileExtension">File extension to check association with.</param>
         /// <remarks>Administrator access is NOT required for this method.</remarks>
         public bool IsFileAssociationSet(FileExtensionDefinition fileExtension)
-            => IsSetAsDefaultApp(fileExtension) && IsInOpenWithListForCurrentUser(fileExtension);
+            => IsProgramIdDefined() && IsSetAsDefaultApp(fileExtension) && IsFirstInOpenWithListForCurrentUser(fileExtension);
 
         private bool IsSetAsDefaultApp(FileExtensionDefinition fileExtension)
         {
@@ -231,10 +231,30 @@ namespace DotnetFileAssociator
             return ProgramId.Equals(defaultProgramId);
         }
 
-        private bool IsInOpenWithListForCurrentUser(FileExtensionDefinition fileExtension)
+        private bool IsProgramIdDefined()
+        {
+            using var programIdKey = _registry.GetClassesRootRegistry.OpenSubKey(ProgramId);
+            if (programIdKey is null)
+                return false;
+
+            using var openKey = programIdKey.OpenSubKey("shell\\open");
+            if (openKey is null)
+                return false;
+
+            using var commandKey = openKey.OpenSubKey("command");
+            if (commandKey is null)
+                return false;
+
+            return true;
+        }
+
+        private bool IsFirstInOpenWithListForCurrentUser(FileExtensionDefinition fileExtension)
         {
             using var mruList = new FileExplorerOpenWithMRUList(fileExtension, _registry);
-            return mruList.ExecutablesInMRUOrder.Contains(this._exeName);
+            if (mruList.ExecutablesInMRUOrder.Count == 0)
+                return false;
+
+            return mruList.ExecutablesInMRUOrder[0].Equals(this._exeName, StringComparison.Ordinal);
         }
 
         private static void NotifyWindowsFileExplorer()

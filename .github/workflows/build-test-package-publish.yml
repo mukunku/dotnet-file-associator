@@ -22,22 +22,19 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore dotnet-file-associator.sln
 
-      - name: Build & Test
-        run: dotnet test dotnet-file-associator.tests/dotnet-file-associator.tests.csproj --configuration Debug
+      - name: Build project # This will also generate the .nupkg file
+        run: dotnet build dotnet-file-associator.sln --configuration Release --no-restore
 
-      - name: Build Release
-        run: dotnet build dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-restore
-
-      - name: Pack NuGet package
-        run: dotnet pack dotnet-file-associator/dotnet-file-associator.csproj --configuration Release --no-build --output ./nupkg
-
+      - name: Test
+        run: dotnet test dotnet-file-associator.tests/dotnet-file-associator.tests.csproj --configuration Release --no-build --no-restore
+        
       - name: Add GitHub Packages as a NuGet source
         run: dotnet nuget add source --username mukunku --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/mukunku/index.json"
 
       - name: Publish to GitHub Packages
         run: dotnet nuget push "*.nupkg" --source "github" --skip-duplicate 
-        working-directory: ./nupkg
+        working-directory: ./dotnet-file-associator/bin/Release
 
       - name: Publish to NuGet.org
         run: dotnet nuget push "*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_ORG_APIKEY }}
-        working-directory: ./nupkg
+        working-directory: ./dotnet-file-associator/bin/Release
