@@ -22,7 +22,7 @@ namespace DotnetFileAssociator
         /// </summary>
         /// <param name="pathToExecutable">Path to executable to be launched when a file is double-clicked.</param>
         /// <exception cref="FileNotFoundException">Thrown if the provided executable does not exist within the file system.</exception>
-        /// <remarks>Keep in mind setting and removing file associations require administrator access.
+        /// <remarks>Keep in mind setting and removing file associations requires administrator access.
         /// Checking if a file association was previously set does not require administrator access.</remarks>
         public FileAssociator(string pathToExecutable, IRegistry? registry = null)
         {
@@ -62,7 +62,7 @@ namespace DotnetFileAssociator
         /// <summary>
         /// Associates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
         /// </summary>
-        /// <param name="fileExtension">File extension to associate the executable with</param>
+        /// <param name="fileExtension">File extension definition to associate the executable with</param>
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         /// <remarks>The executable will become the default app for double-clicking files of this type. It will also get added to the OpenWith list in Windows.</remarks>
         public void SetFileAssociation(FileExtensionDefinition fileExtension)
@@ -93,7 +93,7 @@ namespace DotnetFileAssociator
         /// <summary>
         /// Deasssociates <see cref="PathToExecutable"/> with <paramref name="fileExtension"/> files.
         /// </summary>
-        /// <param name="fileExtension">File extension to associate the executable with</param>
+        /// <param name="fileExtension">File extension definition to associate the executable with</param>
         /// <exception cref="NotRunningAsAdministratorException">This operation requires administrator privileges.</exception>
         public void RemoveFileAssociation(FileExtensionDefinition fileExtension)
         {
@@ -109,7 +109,7 @@ namespace DotnetFileAssociator
         /// <summary>
         /// Makes <see cref="PathToExecutable"/> the default app for the file extension for all users
         /// </summary>
-        /// <param name="fileExtension">File extension to associate with <see cref="PathToExecutable"/></param>
+        /// <param name="fileExtension">File extension definition to associate with <see cref="PathToExecutable"/></param>
         /// <param name="command">The command to be executed when a file with the given extension is double-clicked.
         /// Here '{0}' will be the path to your executable and %1 will be the absolute path to the file that was double clicked</param>
         /// <exception cref="NotRunningAsAdministratorException">Thrown when called while not running as administrator.</exception>
@@ -216,7 +216,7 @@ namespace DotnetFileAssociator
         /// <summary>
         /// Checks if <see cref="PathToExecutable"/> has been previously associated with <paramref name="fileExtension"/> files.
         /// </summary>
-        /// <param name="fileExtension">File extension to check association with.</param>
+        /// <param name="fileExtension">File extension definition to check association with.</param>
         /// <remarks>Administrator access is NOT required for this method.</remarks>
         public bool IsFileAssociationSet(FileExtensionDefinition fileExtension)
             => IsProgramIdDefined() && IsSetAsDefaultApp(fileExtension) && IsFirstInOpenWithListForCurrentUser(fileExtension);
