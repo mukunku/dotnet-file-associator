@@ -6,7 +6,7 @@ Easily set or remove default applications for specific file extensions programma
 
 ## How to Install
 
-```powershell
+```shell
 dotnet add package dotnet-file-associator
 ```
 

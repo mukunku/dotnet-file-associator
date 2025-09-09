@@ -16,7 +16,7 @@ Both packages can be found on [NuGet.org](https://www.nuget.org/profiles/mukunku
 
 ### How to Install
 
-```powershell
+```shell
 dotnet add package dotnet-file-associator
 ```
 
@@ -62,35 +62,33 @@ FileAssociator.IsFileAssociationSet(
 ### How to Install
 
 Install the .NET tool (optionally globally) using the following command:
-```powershell
+```shell
 dotnet tool install dotnet-file-associator.tool -g
 ```
-<hr>
 
 It can then be invoked such as:
-```powershell
+```shell
 dotnet dotnet-file-associator --version
 ```
 or the long version:
-```powershell
+```shell
 dotnet tool run dotnet-file-associator --help
 ```
 
 ### Example Usages
 
 #### Set file association:
-```powershell
+```shell
 dotnet dotnet-file-associator set -p "C:\Program Files\MyApp\MyApp.exe" -e ".abc"
 ```
 
 #### Remove file association:
-```csharp
+```shell
 dotnet dotnet-file-associator remove -p "C:\Program Files\MyApp\MyApp.exe" -e ".abc"
 ```
 
 #### Check file association:
-
-```csharp
+```shell
 dotnet dotnet-file-associator check -p "C:\Program Files\MyApp\MyApp.exe" -e ".abc"
 ```
 <sub>Status code 0 is returned if the association exists, otherwise 1 is returned.</sub>
