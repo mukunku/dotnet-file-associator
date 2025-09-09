@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -141,7 +142,7 @@ namespace DotnetFileAssociator
 
             //Set the command to be run when a user opens a file with the given extension
             using var commandKey = openKey.CreateSubKey("command");
-            commandKey.SetValue(null, command);
+            commandKey.SetValue(null, string.Format(CultureInfo.InvariantCulture, command, PathToExecutable));
         }
 
         /// <summary>
